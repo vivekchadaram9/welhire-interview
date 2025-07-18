@@ -3,7 +3,7 @@ import { Lightbulb, MessageCircleMore } from 'lucide-react';
 
 const ChatComponent = () => {
   return (
-    <Box className='w-full md:w-[380px] bg-gray-100 flex flex-col justify-between border-l border-gray-200 overflow-scroll'>
+    <Box className='w-[30%] md:w-[380px] bg-gray-100 flex flex-col justify-between border-l border-gray-200'>
       {/* Header */}
       <Box className='p-4 border-b border-gray-200 flex items-center justify-between'>
         <Typography variant='h6' className='text-gray-800 font-semibold'>

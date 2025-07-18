@@ -44,7 +44,7 @@ const StartInterview = ({
             onClick={onClose}
             label={
               <div className='flex flex-row items-center text-white'>
-                <p className='font-bold mr-1.5'>Start Interview</p>{' '}
+                <p className=' mr-1.5'>Start Interview</p>
                 <ArrowRight size={15} />
               </div>
             }

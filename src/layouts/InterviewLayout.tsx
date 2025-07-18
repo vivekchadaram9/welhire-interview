@@ -4,7 +4,7 @@ import { Divider, Typography } from '@mui/material';
 
 function InterviewLayout() {
   return (
-    <div className='flex flex-col'>
+    <div className='flex flex-col h-full p-2'>
       <div className='flex flex-row w-screen items-center'>
         <Icon name='logo' className='w-35 h-20' />
         <Divider
@@ -22,7 +22,7 @@ function InterviewLayout() {
           </Typography>
         </div>
       </div>
-      <div className='rounded-sm bg-white p-2'>
+      <div className='rounded-sm bg-white p-2 h-full shadow'>
         <Outlet />
       </div>
     </div>

@@ -21,7 +21,7 @@ export const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: 'Roboto, sans-serif',
+    fontFamily: 'Poppins, sans-serif',
     subtitle1: {
       fontWeight: 600,
       fontSize: '1rem',

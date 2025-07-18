@@ -15,6 +15,7 @@ interface ButtonProps {
   fontSize?: string;
   fontWeight?: number | string;
   disabled?: boolean;
+  disableElevation?: boolean;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -29,13 +30,14 @@ const Button: React.FC<ButtonProps> = ({
   fontSize = '14px',
   fontWeight = 500,
   disabled = false,
+  disableElevation=true
 }) => {
   return (
     <MuiButton
       onClick={!disabled ? onClick : undefined}
       disabled={disabled}
       variant='contained'
-      disableElevation
+      disableElevation={disableElevation}
       sx={{
         backgroundColor,
         color: textColor,

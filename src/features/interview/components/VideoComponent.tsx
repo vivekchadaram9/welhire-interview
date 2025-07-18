@@ -2,6 +2,7 @@ import React from 'react';
 import Timer, { type TimerHandle } from '../../../components/Timer';
 import { CircleDot, TimerIcon } from 'lucide-react';
 import CurrentQuestion, { type CurrentQuestionProps } from './CurrentQuestion';
+import Webcam from 'react-webcam';
 interface VideoComponentProps extends CurrentQuestionProps {
   recording: boolean;
   videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -23,15 +24,26 @@ const VideoComponent = ({
         nextDisabled={nextDisabled}
         onClickNext={onClickNext}
       />
-      <div className='relative rounded w-[70%]'>
+      <div className='relative bg-black rounded overflow-hidden items-stretch'>
         {/* Camera Feed */}
         <video
           ref={videoRef}
           autoPlay
           muted
           playsInline
-          className='rounded object-cover w-full h-full aspect-video'
+          className='w-full object-contain'
         />
+        {/* <Webcam
+          height={720}
+          screenshotFormat='image/jpeg'
+          width={1280}
+          className='w-[83%] h-[30%] object-contain'
+          videoConstraints={{
+            width: 1000,
+            height: 400,
+            facingMode: 'user',
+          }}
+        /> */}
         {recording && (
           <div className='absolute top-4 flex flex-1 justify-between  text-sm w-full px-2'>
             {/* Timer */}

@@ -7,8 +7,6 @@ import ChatComponent from './components/ChatComponent';
 
 export const Interview = () => {
   const {
-    showExitModal,
-    setShowExitModal,
     interviewStarted,
     startInterview,
     stopRecording,
@@ -19,20 +17,25 @@ export const Interview = () => {
     questionObject,
     nextDisabled,
     onClickNext,
+    showExitInterviewModal,
+    dispatch,
+    exitInterviewModalStatus,
+    handleInterviewStopping,
   } = InterviewFunc();
   return (
     <div>
-      <div className='flex flex-1 grow-1'>
+      <div className='flex flex-1'>
         <ExitInterview
-          open={showExitModal}
-          onClose={() => setShowExitModal(false)}
-          onConfirm={() => console.log('stop interview')}
+          open={showExitInterviewModal}
+          onClose={() => dispatch(exitInterviewModalStatus(false))}
+          onConfirm={handleInterviewStopping}
         />
         <StartInterview
           open={!interviewStarted} //should show if interview is not yet started
           onClose={startInterview}
         />
-        <div className='flex flex-1 justify-between w-11/12'>
+        <div className='flex justify-between'>
+        <div className="w-8/12" >
           <VideoComponent
             recording={recording}
             videoRef={videoRef}
@@ -41,7 +44,10 @@ export const Interview = () => {
             nextDisabled={nextDisabled}
             onClickNext={onClickNext}
           />
-          {/* for testing if you ever want to download video */}
+
+        </div>
+          <div className='w-4/12 flex felx-col'>
+           {/* for testing if you ever want to download video */}
           {/* <Button
             variant='outlined'
             color='error'
@@ -59,7 +65,8 @@ export const Interview = () => {
               Download Recording
             </a>
           )} */}
-          <ChatComponent />
+          </div>
+         
         </div>
       </div>
     </div>

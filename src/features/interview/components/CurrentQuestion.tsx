@@ -1,5 +1,4 @@
 import {
-  Box,
   Divider,
 } from '@mui/material';
 import Button from '../../../components/Button';
@@ -23,16 +22,21 @@ const CurrentQuestion = ({
   onClickNext,
 }: CurrentQuestionProps) => {
   return (
-    <div className='flex flex-row items-cenmter'>
-      <div className='flex flex-col justify-center'>
-        <p className='font-bold text-4xl'>Q{questionObject?.currentQuestion}</p>
-        <div className='flex flex-row items-center'>
-          <p className='text-lg'>/</p>
-          <p>{questionObject?.totalQuestions}</p>
+    <div className='flex flex-row items-center justify-between mb-5'>
+      <div className='flex flex-row items-center max-w-[78%] '>
+        <div className='flex flex-col justify-center'>
+          <p className='font-bold text-4xl'>
+            Q{questionObject?.currentQuestion}
+          </p>
+          <div className='flex flex-row items-center'>
+            <p className='text-lg'>/</p>
+            <p>{questionObject?.totalQuestions}</p>
+          </div>
         </div>
+        <Divider orientation='vertical' flexItem style={{ marginRight: 10,marginLeft:10 }} />
+        <p className='line-clamp-3'>{questionObject.question}</p>
       </div>
-      <Divider orientation='vertical' flexItem className='mx-2' style={{marginX:10}} />
-      <p className="grow-1">{questionObject.question}</p>
+
       <Button
         onClick={onClickNext}
         label={
@@ -42,7 +46,7 @@ const CurrentQuestion = ({
           </div>
         }
         backgroundColor={'#292F66'}
-        padding='5px 30px'
+        padding='5px 20px'
         fontWeight={500}
         disabled={nextDisabled}
         borderRadius='30'

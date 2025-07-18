@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { TimerHandle } from '../../components/Timer';
+import { useDispatch, useSelector } from 'react-redux';
+import { exitInterviewModalStatus } from './reducer/interviewSlice';
 
 function InterviewFunc() {
  const [showExitModal,setShowExitModal] = useState(false)
@@ -11,6 +13,8 @@ function InterviewFunc() {
   const [recording, setRecording] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState('');
   const timerRef = useRef<TimerHandle>(null);
+  const dispatch = useDispatch()  
+  const  showExitInterviewModal  = useSelector((state: any)=>state.interview.showExitInterviewModal)
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -25,14 +29,16 @@ function InterviewFunc() {
     };
   }, []);
 
+  useEffect(() => {
 
+  }, [showExitInterviewModal]);
 
 useEffect(() => {
   const getPermissions = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: true,
-        audio: true,
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
       setStream(mediaStream);
       if (videoRef.current) {
@@ -45,12 +51,54 @@ useEffect(() => {
   getPermissions();
   return () => mediaRecorderRef.current?.stop();
 }, []);
+function sendFrame(element) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = element.videoWidth;
+  canvas.height = element.videoHeight;
+  ctx.drawImage(element, 0, 0, canvas.width, canvas.height);
+  canvas.toBlob((blob) => {
+    sendFrameByPOST(blob);
+  }, 'image/jpeg');
+}
+const uploadChunk = async () => {
+  const combinedBlob = new Blob(blobList, { type: 'video/webm' });
+  // const url = URL.createObjectURL(combinedBlob);
+  // const a = document.createElement("a");
+  // a.href = url;
+  // a.download = "recording.webm";
+  // a.click();
+  const formData = new FormData();
+  formData.append('csrfmiddlewaretoken', csrfToken);
+  formData.append('chunk', combinedBlob);
+  formData.append('chunkIndex', chunkCounter++);
+  formData.append('fileName', 'interviewRecording.webm');
 
+  try {
+    const response = await fetch('/user/api/save_video_blob/', {
+      method: 'POST',
+      headers: {
+        Authorization: `Token ${accessToken}`,
+      },
+      body: formData,
+    });
+
+    if (response.ok) {
+      //do nothing
+      sendData(email, `video chunk uploaded ${chunkCounter}`);
+    } else {
+      throw new Error('Network response was not ok');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    sendData(`email : ${email},ERROR: ${error}`, 'Error in video sending');
+  }
+};
 const startInterview = async () => {
   setInterviewStarted(true)
   try {
     const vidStream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       video: true,
     });
     const combinedStream = new MediaStream([
@@ -58,10 +106,12 @@ const startInterview = async () => {
       ...vidStream.getVideoTracks(),
     ]);
     const recorder = new MediaRecorder(combinedStream);
+    recorder.start(1000)
     const chunks: Blob[] = [];
 
     recorder.ondataavailable = (e: BlobEvent) => {
       if (e.data.size > 0) chunks.push(e.data);
+
     };
     recorder.onstop = () => {
       vidStream.getTracks().forEach((t) => t.stop());
@@ -97,10 +147,13 @@ const questionObject = {
  const nextDisabled=useMemo(()=>{return false},[])
  const onClickNext=()=>{}
 
+ const handleInterviewStopping = () => {
+   dispatch(exitInterviewModalStatus(false));
+   stopRecording()
+   //navigate to feedback screen
+ };
 
  return {
-   showExitModal,
-   setShowExitModal,
    interviewStarted,
    stopRecording,
    recording,
@@ -112,6 +165,10 @@ const questionObject = {
    questionObject,
    nextDisabled,
    onClickNext,
+   showExitInterviewModal,
+   dispatch,
+   exitInterviewModalStatus,
+   handleInterviewStopping,
  };
 }
 

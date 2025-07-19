@@ -21,6 +21,7 @@ export const Interview = () => {
     dispatch,
     exitInterviewModalStatus,
     handleInterviewStopping,
+    transcript
   } = InterviewFunc();
   return (
     <div>
@@ -65,6 +66,7 @@ export const Interview = () => {
               Download Recording
             </a>
           )} */}
+          <p>{transcript}</p>
           </div>
          
         </div>

@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { TimerHandle } from '../../components/Timer';
 import { useDispatch, useSelector } from 'react-redux';
 import { exitInterviewModalStatus } from './reducer/interviewSlice';
+import { useSpeechServices } from '../../hooks/useSpeechServices';
 
 function InterviewFunc() {
  const [showExitModal,setShowExitModal] = useState(false)
@@ -15,6 +16,14 @@ function InterviewFunc() {
   const timerRef = useRef<TimerHandle>(null);
   const dispatch = useDispatch()  
   const  showExitInterviewModal  = useSelector((state: any)=>state.interview.showExitInterviewModal)
+  const {transcript,
+    isListening,
+    isSpeaking,
+    error,
+    startListening,
+    stopListening,
+    speak,
+    clearError} = useSpeechServices()
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -51,49 +60,52 @@ useEffect(() => {
   getPermissions();
   return () => mediaRecorderRef.current?.stop();
 }, []);
-function sendFrame(element) {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  canvas.width = element.videoWidth;
-  canvas.height = element.videoHeight;
-  ctx.drawImage(element, 0, 0, canvas.width, canvas.height);
-  canvas.toBlob((blob) => {
-    sendFrameByPOST(blob);
-  }, 'image/jpeg');
-}
-const uploadChunk = async () => {
-  const combinedBlob = new Blob(blobList, { type: 'video/webm' });
-  // const url = URL.createObjectURL(combinedBlob);
-  // const a = document.createElement("a");
-  // a.href = url;
-  // a.download = "recording.webm";
-  // a.click();
-  const formData = new FormData();
-  formData.append('csrfmiddlewaretoken', csrfToken);
-  formData.append('chunk', combinedBlob);
-  formData.append('chunkIndex', chunkCounter++);
-  formData.append('fileName', 'interviewRecording.webm');
 
-  try {
-    const response = await fetch('/user/api/save_video_blob/', {
-      method: 'POST',
-      headers: {
-        Authorization: `Token ${accessToken}`,
-      },
-      body: formData,
-    });
+// const  createScreenShot =(element:any)=> {
+//   const canvas = document.createElement('canvas');
+//   const ctx = canvas.getContext('2d');
+//   canvas.width = element.videoWidth;
+//   canvas.height = element.videoHeight;
+//   ctx.drawImage(element, 0, 0, canvas.width, canvas.height);
+//   canvas.toBlob((blob) => {
+//     // api to send screenshots
+//   }, 'image/jpeg');
+// }
 
-    if (response.ok) {
-      //do nothing
-      sendData(email, `video chunk uploaded ${chunkCounter}`);
-    } else {
-      throw new Error('Network response was not ok');
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    sendData(`email : ${email},ERROR: ${error}`, 'Error in video sending');
-  }
-};
+// const uploadChunk = async () => {
+//   const combinedBlob = new Blob(blobList, { type: 'video/webm' });
+//   // const url = URL.createObjectURL(combinedBlob);
+//   // const a = document.createElement("a");
+//   // a.href = url;
+//   // a.download = "recording.webm";
+//   // a.click();
+//   const formData = new FormData();
+//   formData.append('csrfmiddlewaretoken', csrfToken);
+//   formData.append('chunk', combinedBlob);
+//   formData.append('chunkIndex', chunkCounter++);
+//   formData.append('fileName', 'interviewRecording.webm');
+
+//   try {
+//     const response = await fetch('/user/api/save_video_blob/', {
+//       method: 'POST',
+//       headers: {
+//         Authorization: `Token ${accessToken}`,
+//       },
+//       body: formData,
+//     });
+
+//     if (response.ok) {
+//       //do nothing
+//       sendData(email, `video chunk uploaded ${chunkCounter}`);
+//     } else {
+//       throw new Error('Network response was not ok');
+//     }
+//   } catch (error) {
+//     console.error('Error:', error);
+//     sendData(`email : ${email},ERROR: ${error}`, 'Error in video sending');
+//   }
+// };
+
 const startInterview = async () => {
   setInterviewStarted(true)
   try {
@@ -118,9 +130,13 @@ const startInterview = async () => {
       const blob = new Blob(chunks, { type: 'video/webm' });
       setDownloadUrl(URL.createObjectURL(blob));
     };
-    recorder.start();
     mediaRecorderRef.current = recorder;
     setRecording(true);
+    speak("this is going to be the chitti's first question", undefined, (audioBlob, audioUrl) => {
+      console.log("Got audio blob:", audioBlob);
+      console.log("Audio URL:", audioUrl);
+    });
+    // stopListening : () => startListening('en-US')
   } catch (err) {
     console.error('recording failed:', err);
   }
@@ -153,6 +169,14 @@ const questionObject = {
    //navigate to feedback screen
  };
 
+ useEffect(() => {
+  if(!isSpeaking){
+    startListening('en-US')
+  }
+   
+ }, [isSpeaking])
+ 
+
  return {
    interviewStarted,
    stopRecording,
@@ -169,6 +193,7 @@ const questionObject = {
    dispatch,
    exitInterviewModalStatus,
    handleInterviewStopping,
+   transcript,
  };
 }
 

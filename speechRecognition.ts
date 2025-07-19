@@ -1,5 +1,5 @@
 // config/speechConfig.ts
 export const SPEECH_CONFIG = {
-  subscriptionKey: import.meta.env.VITE_SPEECH_KEY,
-  region: import.meta.env.VITE_SPEECH_REGION,
+  subscriptionKey: '6c5c4f6878f6418d8ad2a0564db96c07',
+  region: 'centralindia',
 };

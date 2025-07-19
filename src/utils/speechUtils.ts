@@ -1,5 +1,4 @@
 import { SPEECH_CONFIG } from './../../speechRecognition';
-// utils/speechToText.ts
 import * as sdk from 'microsoft-cognitiveservices-speech-sdk';
 
 interface SpeechToTextOptions {
@@ -265,10 +264,11 @@ export const speakText = async (
   text: string,
   voice: string = 'en-US-JennyNeural',
   language: string = 'en-US'
-): Promise<void> => {
+): Promise<TextToSpeechResult> => {
   try {
     const result = await textToSpeech(text, { voice, language });
     await result.play();
+    return result; // Return the result so we can access audioBlob
   } catch (error) {
     console.error('Speech synthesis failed:', error);
     throw error;

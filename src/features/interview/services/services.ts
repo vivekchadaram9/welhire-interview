@@ -152,4 +152,54 @@ export const uploadImageFile = async (
   .catch((error) => onFailure && onFailure(error));
 };
 
+export const startSession = async () => {
+  try {
+      const response = await ApiRequest({
+          url: ports.jdService + "api/v1/interview/start-session/" + ports.jdRefId,
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json",
+          },
+      });
+      if (!response) throw new Error("Failed to start session");
+      const generateResponse = await generateQuestions();
+      if (!generateResponse) throw new Error("Failed to generate questions");
 
+      localStorage.setItem("sessionId", response.data.data);
+  } catch (error) {
+      console.error("Error starting session:", error);
+  }
+}
+
+export const generateQuestions = async () => {
+  try {
+      const response = await ApiRequest({
+          url: ports.jdService + `api/v1/questions/generate/${ports.jdRefId}/${ports.candidateRefId}`,
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json",
+          },
+      });
+      if (!response) throw new Error("Failed to start session");
+        return response.data;
+  } catch (error) {
+      console.error("Error starting session:", error);
+  }
+}
+
+export const getNextQuestion = async (body: any) => {
+  try {
+      const response = await ApiRequest({
+          url: ports.jdService + `api/v1/interview/next-question?sessionId=${localStorage.getItem("sessionId")}`,
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json",
+          },
+          data: body,
+      });
+      if (!response) throw new Error("Failed to start session");
+        return response.data;
+  } catch (error) {
+      console.error("Error starting session:", error);
+  }
+}

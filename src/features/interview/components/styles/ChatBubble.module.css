@@ -1,0 +1,36 @@
+.chat-left {
+  position: relative;
+  background: #97cbff4d;
+  border-bottom-left-radius: 0;
+}
+
+.chat-left::before {
+  content: "";
+  position: absolute;
+  left: -1rem;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  border-bottom: 1rem solid #97cbff4d;
+  border-left: 1rem solid transparent;
+  border-bottom-left-radius: 1rem;
+  border-top-left-radius: 1rem;
+}
+
+
+.chat-right {
+  position: relative;
+  background: #97cbff4d;
+  border-bottom-right-radius: 0%;
+}
+
+.chat-right::before {
+   content: "";
+  position: absolute;
+  right: -1rem;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  border-bottom: 1rem solid #97cbff4d;
+  border-right: 1rem solid transparent;
+}

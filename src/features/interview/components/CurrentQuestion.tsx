@@ -1,8 +1,6 @@
-import {
-  Divider,
-} from '@mui/material';
-import Button from '../../../components/Button';
-import { ChevronRight } from 'lucide-react';
+import { Box, Divider, Typography } from "@mui/material";
+import { ChevronRight } from "lucide-react";
+import { type FC } from "react";
 
 interface QuestionObjectProps {
   currentQuestion: string;
@@ -11,47 +9,79 @@ interface QuestionObjectProps {
 }
 
 export interface CurrentQuestionProps {
-  questionObject: QuestionObjectProps;
+  currentQuestion: any;
+  questionTotalCount: number;
   nextDisabled: boolean;
   onClickNext: () => void;
+  questionOver: boolean;
 }
 
-const CurrentQuestion = ({
-  questionObject,
-  nextDisabled,
+const CurrentQuestion: FC<CurrentQuestionProps> = ({
+  questionTotalCount,
+  currentQuestion,
   onClickNext,
-}: CurrentQuestionProps) => {
-  return (
-    <div className='flex flex-row items-center justify-between mb-5'>
-      <div className='flex flex-row items-center max-w-[78%] '>
-        <div className='flex flex-col justify-center'>
-          <p className='font-bold text-4xl'>
-            Q{questionObject?.currentQuestion}
-          </p>
-          <div className='flex flex-row items-center'>
-            <p className='text-lg'>/</p>
-            <p>{questionObject?.totalQuestions}</p>
-          </div>
-        </div>
-        <Divider orientation='vertical' flexItem style={{ marginRight: 10,marginLeft:10 }} />
-        <p className='line-clamp-3'>{questionObject.question}</p>
-      </div>
+  nextDisabled,
+  questionOver
+}) => {
+  const getNextQuestion = () => {
+    if(nextDisabled) return;
+    onClickNext();
+  };
 
-      <Button
-        onClick={onClickNext}
-        label={
-          <div className='flex flex-row items-center text-white'>
-            <p className=' mr-1.5'>Next Question</p>
-            <ChevronRight size={25} />
-          </div>
-        }
-        backgroundColor={'#292F66'}
-        padding='5px 20px'
-        fontWeight={500}
-        disabled={nextDisabled}
-        borderRadius='30'
-      />
-    </div>
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: { xs: "column", sm: "column", md: "column", lg: "row" },
+        alignItems: { xs: "flex-start", md: "fflex-start" },
+        padding: "1rem 0rem",
+        justifyContent: "space-between",
+        gap: "1.5rem",
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "row",
+          gap: "1rem",
+          paddingLeft: "1rem",
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+         {!questionOver && <><Typography variant="h4" fontWeight={700}>
+            Q{currentQuestion?.number ?? "0"}
+          </Typography>
+          <Typography>/{questionTotalCount}</Typography></>}
+        </Box>
+        <Divider orientation="vertical" flexItem />
+        {!questionOver ? <Typography align="left">
+          {currentQuestion?.question ?? ""}
+        </Typography>:<Typography align="left">Interview Finished</Typography>}
+      </Box>
+      {!questionOver && <button
+        onClick={getNextQuestion}
+        style={{
+          display: "flex",
+          background: nextDisabled ? "#ddd" : "#32337B",
+          padding: "0.8rem 1rem",
+          borderRadius: "1.5rem",
+          color: "white",
+          alignItems: "center",
+          gap: "0.2rem",
+          whiteSpace: "nowrap",
+          cursor: nextDisabled ? "not-allowed" : "pointer",
+        }}
+      >
+        <Typography style={{ textAlign: "left" }}> Next Question </Typography>
+        <ChevronRight size={25} />
+      </button>}
+    </Box>
   );
 };
 

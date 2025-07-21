@@ -8,13 +8,13 @@ import store from "./store/store";
 import { theme } from "./styles/themes";
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <React.StrictMode>
+  // <React.StrictMode>
     <ThemeProvider theme={theme}>
       <Provider store={store}>
         <CssBaseline />
         <App />
       </Provider>
     </ThemeProvider>
-  </React.StrictMode>
+  // </React.StrictMode>
 );
 

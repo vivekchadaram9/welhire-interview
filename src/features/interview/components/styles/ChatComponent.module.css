@@ -1,0 +1,35 @@
+.chatContainer{
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: #fff;
+}
+.questionCounter {
+    display: flex;
+    align-items: center;
+    color: #66676A;
+    border: 0.12rem solid rgb(30, 30, 169);
+    background-color: #31327B1A;
+    color: rgb(30, 30, 169);
+    border-radius: 1.5rem;
+    padding: 0.5rem 1rem;
+}
+.chatScrollableArea {
+  scrollbar-width: thin;
+  scrollbar-color: #888 #eee;
+}
+
+.chatScrollableArea::-webkit-scrollbar {
+  width: 0.2rem;
+}
+
+.chatScrollableArea::-webkit-scrollbar-track {
+  background: #eee;
+}
+
+.chatScrollableArea::-webkit-scrollbar-thumb {
+  background-color: #888;
+  border-radius: 0.2rem;
+  border: 0.2rem solid #eee;
+}

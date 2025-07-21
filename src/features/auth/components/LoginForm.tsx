@@ -2,6 +2,8 @@ import React, { useState, type ChangeEvent } from 'react';
 import { FaUser } from 'react-icons/fa';
 import { Box, Button } from '@mui/material';
 import Input from '../../../components/Input';
+import { useDispatch } from 'react-redux';
+import { updatedEmail } from '../reducer/authSlice';
 
 interface LoginFormProps {
   onLoginClick: (input: string) => void;
@@ -9,7 +11,7 @@ interface LoginFormProps {
 
 const LoginForm: React.FC<LoginFormProps> = ({ onLoginClick }) => {
   const [userInput, setUserInput] = useState<string>('');
-
+  const dispatch = useDispatch()
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setUserInput(e.target.value);
   };
@@ -21,6 +23,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginClick }) => {
 
 
   const isValidInput = isEmail(cleanInput) 
+
+  const handleLoginClick = () =>{
+    if(isValidInput){
+      onLoginClick(cleanInput)
+      dispatch(updatedEmail(cleanInput))
+    }
+  }
 
   return (
     <Box>
@@ -43,7 +52,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginClick }) => {
               color: '#666666',
             },
           }}
-          onClick={() => isValidInput && onLoginClick(cleanInput)}
+          onClick={handleLoginClick}
           disabled={!isValidInput}
         >
           Login with OTP

@@ -436,7 +436,7 @@ export const textToSpeech = async (
       );
       speechConfig.speechSynthesisVoiceName = voice;
       speechConfig.speechSynthesisLanguage = language;
-
+      
       const synthesizer = new sdk.SpeechSynthesizer(speechConfig, null);
 
       let speechText = text;
@@ -466,7 +466,7 @@ export const textToSpeech = async (
           if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
             const audioData = result.audioData;
             const audioBlob = new Blob([new Uint8Array(audioData)], {
-              type: 'audio/wav',
+              type: 'audio/mp3',
             });
             const audioUrl = URL.createObjectURL(audioBlob);
             const audio = new Audio(audioUrl);

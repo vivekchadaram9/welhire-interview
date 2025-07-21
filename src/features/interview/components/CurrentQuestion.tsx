@@ -2,12 +2,6 @@ import { Box, Divider, Typography } from "@mui/material";
 import { ChevronRight } from "lucide-react";
 import { type FC } from "react";
 
-interface QuestionObjectProps {
-  currentQuestion: string;
-  question: string;
-  totalQuestions: string;
-}
-
 export interface CurrentQuestionProps {
   currentQuestion: any;
   questionTotalCount: number;

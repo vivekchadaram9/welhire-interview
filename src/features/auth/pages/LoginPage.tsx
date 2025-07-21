@@ -91,10 +91,7 @@ const LoginPage = () => {
             >
               Log in
             </Button>
-
-            
           </Box>
-
           {!showOtp ? (
             <LoginForm onLoginClick={handleLoginClick} />
           ) : (

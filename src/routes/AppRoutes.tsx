@@ -4,6 +4,7 @@ import AuthLayout from '../layouts/AuthLayout';
 import NotFound from '../components/NotFound';
 import { Interview } from '../features/interview/Component';
 import InterviewLayout from '../layouts/InterviewLayout';
+import ProtectedRoute from './ProtectedRoute';
 
 const AppRoutes = () => (
   <Router>
@@ -14,9 +15,9 @@ const AppRoutes = () => (
         <Route path='/login' element={<LoginPage />} />
         <Route
           element={
-            // <ProtectedRoute>
+            <ProtectedRoute>
             <InterviewLayout />
-            //   </ProtectedRoute>
+              </ProtectedRoute>
           }
         >
           <Route path='/interview' element={<Interview />} />

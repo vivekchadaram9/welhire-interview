@@ -1,24 +1,27 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { TimerHandle } from "../../components/Timer";
-import { useDispatch, useSelector } from "react-redux";
-import { exitInterviewModalStatus } from "./reducer/interviewSlice";
-import { useSpeechServices } from "../../hooks/useSpeechServices";
-import { updateAnswer, updateQuestion } from "./reducer/questionSlice";
-import { getNextQuestion } from "./services/services";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { TimerHandle } from '../../components/Timer';
+import { useDispatch, useSelector } from 'react-redux';
+import { exitInterviewModalStatus } from './reducer/interviewSlice';
+import { useSpeechServices } from '../../hooks/useSpeechServices';
+import { updateAnswer, updateQuestion } from './reducer/questionSlice';
+import { getNextQuestion, uploadAudioBlobs, uploadImageFile, uploadVideoBlobs } from './services/services';
+import { chunksSize } from '../../utils/constants';
+import { logout } from '../auth/reducer/authSlice';
 
 function InterviewFunc() {
-  const [showExitModal, setShowExitModal] = useState(false);
   const [interviewStarted, setInterviewStarted] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const hasSentRef = useRef<boolean>(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [recording, setRecording] = useState(false);
-  const [downloadUrl, setDownloadUrl] = useState("");
   const timerRef = useRef<TimerHandle>(null);
   const [nextDisabled, setNextDisabled] = useState<boolean>(true);
   const [questionOver, setQuestionOver] = useState<boolean>(false);
   const [chatList, updateChatList] = useState<any[]>([]);
+  const [audioTimeStamps, setAudioTimeStamps] = useState<any[]>([]);
+  const [activeAudioBlob,setActiveAudioBlob] = useState<Blob>()
+  const [chunkCounter, setChunkCounter] = useState<number>(0);
   const isAlreadySpeaking = useRef<boolean>(false);
   const startSpeakingTimestamp = useRef<Date>(null);
   const dispatch = useDispatch();
@@ -39,32 +42,36 @@ function InterviewFunc() {
     stopListening,
     speak,
     clearError,
-    clearTranscript
+    clearTranscript,
   } = useSpeechServices();
-
+  const onSuccess = (res: object) => {
+    console.log(res, 'res');
+  };
+  const onFailure = (error: Error) => {
+    console.error(error, 'err');
+  };
   useEffect(() => {
-    console.log(isSpeaking, "isSpeaking");
-    console.log(isListening, "isListening");
-    console.log(transcript, "transcript");
-    console.log(interimTranscript, "interimTranscript");
+    console.log(isSpeaking, 'isSpeaking');
+    console.log(isListening, 'isListening');
+    console.log(transcript, 'transcript');
+    console.log(interimTranscript, 'interimTranscript');
 
-    
-    if((transcript || interimTranscript) && !isAlreadySpeaking.current){
+    if ((transcript || interimTranscript) && !isAlreadySpeaking.current) {
       startSpeakingTimestamp.current = new Date();
       isAlreadySpeaking.current = true;
     }
-  },[transcript]);
+  }, [transcript]);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!hasSentRef.current) {
-        console.log("User tried to reload or close the page");
+        console.log('User tried to reload or close the page');
         hasSentRef.current = true;
       }
     };
-    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, []);
 
@@ -86,64 +93,130 @@ function InterviewFunc() {
           videoRef.current.srcObject = mediaStream;
         }
       } catch (error) {
-        console.error("Error accessing media devices.", error);
+        console.error('Error accessing media devices.', error);
       }
     };
     getPermissions();
     return () => mediaRecorderRef.current?.stop();
   }, []);
 
-
   useEffect(() => {
-    if(currentQuestion && currentQuestion?.number>0 && currentQuestion?.number < 999) {
-      speak(currentQuestion.question);
+    if (
+      currentQuestion &&
+      currentQuestion?.number > 0 &&
+      currentQuestion?.number < 999
+    ) {
+      speak(
+        currentQuestion.question,
+        undefined,
+        (audioBlob, audioUrl) => {
+          setActiveAudioBlob(audioBlob)
+        }
+      )
     }
-  },[currentQuestion.number]);
+  }, [currentQuestion.number]);
 
-  // const  createScreenShot =(element:any)=> {
-  //   const canvas = document.createElement('canvas');
-  //   const ctx = canvas.getContext('2d');
-  //   canvas.width = element.videoWidth;
-  //   canvas.height = element.videoHeight;
-  //   ctx.drawImage(element, 0, 0, canvas.width, canvas.height);
-  //   canvas.toBlob((blob) => {
-  //     // api to send screenshots
-  //   }, 'image/jpeg');
-  // }
+  const takeScreenshot = (screenshotIndex: number) => {
+    console.log(`Taking screenshot ${screenshotIndex}`);
 
-  // const uploadChunk = async () => {
-  //   const combinedBlob = new Blob(blobList, { type: 'video/webm' });
-  //   // const url = URL.createObjectURL(combinedBlob);
-  //   // const a = document.createElement("a");
-  //   // a.href = url;
-  //   // a.download = "recording.webm";
-  //   // a.click();
-  //   const formData = new FormData();
-  //   formData.append('csrfmiddlewaretoken', csrfToken);
-  //   formData.append('chunk', combinedBlob);
-  //   formData.append('chunkIndex', chunkCounter++);
-  //   formData.append('fileName', 'interviewRecording.webm');
+    const element = document.getElementById('#video') as HTMLVideoElement | null;
 
-  //   try {
-  //     const response = await fetch('/user/api/save_video_blob/', {
-  //       method: 'POST',
-  //       headers: {
-  //         Authorization: `Token ${accessToken}`,
-  //       },
-  //       body: formData,
-  //     });
+    if (!element) {
+      console.error('Video element not found');
+      return;
+    }
 
-  //     if (response.ok) {
-  //       //do nothing
-  //       sendData(email, `video chunk uploaded ${chunkCounter}`);
-  //     } else {
-  //       throw new Error('Network response was not ok');
-  //     }
-  //   } catch (error) {
-  //     console.error('Error:', error);
-  //     sendData(`email : ${email},ERROR: ${error}`, 'Error in video sending');
-  //   }
-  // };
+    // Wait for video to be ready
+    if (element.readyState < 2) {
+      console.warn('Video not ready for screenshot');
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      console.error('Could not get canvas context');
+      return;
+    }
+
+    // Use actual video dimensions or fallback
+    canvas.width = element.videoWidth || element.clientWidth || 640;
+    canvas.height = element.videoHeight || element.clientHeight || 480;
+
+    try {
+      ctx.drawImage(element, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(
+        (blob: Blob | null) => {
+          if (!blob) {
+            console.error('Failed to create screenshot blob');
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append('snapshotImage', blob);
+          formData.append('emailId', 'joe@gmail.com');
+          formData.append('interviewSessionId', 'session-67');
+          formData.append('candidateId', 'CANDIDATE-898');
+          formData.append('chunkIndex', screenshotIndex.toString());
+
+          console.log(`Uploading screenshot ${screenshotIndex}`);
+          uploadImageFile(formData, onSuccess, onFailure);
+        },
+        'image/jpeg',
+        0.8
+      );
+    } catch (error) {
+      console.error('Error taking screenshot:', error);
+    }
+  };
+
+
+  
+
+  const uploadVideoChunks = async (
+    blobList: any,
+    counter: number,
+    isLastChunk: boolean = false
+  ) => {
+    const combinedBlob = new Blob(blobList, { type: 'video/webm' });
+    // const url = URL.createObjectURL(combinedBlob);
+    // const a = document.createElement('a');
+    // a.href = url;
+    // a.download = 'recording.webm';
+    // a.click();
+    const formData = new FormData();
+    formData.append('chunkIndex', counter.toString());
+    formData.append('videoFile', combinedBlob);
+    formData.append('emailId', 'joe@gmail.com');
+    formData.append('interviewSessionId', 'session-67');
+    formData.append('candidateId', 'CANDIDATE-898');
+    if (isLastChunk) {
+      formData.append('isLastChunk', 'true');
+    }
+    console.log('this api is calling', formData, counter);
+    uploadVideoBlobs(formData, onSuccess, onFailure);
+  };
+
+  const uploadAudioChunks = async (
+    blob: any,
+    counter: number,
+    isLastChunk: boolean = false
+  ) => {
+    const formData = new FormData();
+    formData.append('chunkIndex', counter.toString());
+    formData.append('audioFile', blob);
+    formData.append('emailId', 'joe@gmail.com');
+    formData.append('interviewSessionId', 'session-67');
+    formData.append('candidateId', 'CANDIDATE-898');
+    formData.append('timeStamps', JSON.stringify([...audioTimeStamps, getElapsedTime()]));
+    if (isLastChunk) {
+      formData.append('isLastChunk', 'true');
+    }
+    console.log('audio api is calling', formData, counter);
+    uploadAudioBlobs(formData, onSuccess, onFailure);
+  };
 
   const startInterview = async () => {
     setInterviewStarted(true);
@@ -160,110 +233,131 @@ function InterviewFunc() {
         ...vidStream.getAudioTracks(),
         ...vidStream.getVideoTracks(),
       ]);
-      const recorder = new MediaRecorder(combinedStream);
+      const options = {
+        mimeType: 'video/webm;codecs=vp9,opus',
+        videoBitsPerSecond: 2500000,
+        audioBitsPerSecond: 128000,
+      };
+      const recorder = new MediaRecorder(combinedStream, options);
       recorder.start(1000);
-      const chunks: Blob[] = [];
-
+      let chunks: Blob[] = [];
+      let videoChunkCounter = 0;
       recorder.ondataavailable = (e: BlobEvent) => {
-        if (e.data.size > 0) chunks.push(e.data);
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+          if (chunks.length >= chunksSize) {
+            takeScreenshot(videoChunkCounter)
+            setChunkCounter((prev) => prev + 1);
+            uploadVideoChunks(chunks, ++videoChunkCounter);
+            chunks = [];
+          }
+        }
       };
       recorder.onstop = () => {
         vidStream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunks, { type: "video/webm" });
-        setDownloadUrl(URL.createObjectURL(blob));
+        uploadVideoChunks(chunks, ++videoChunkCounter, true);
       };
       mediaRecorderRef.current = recorder;
       setRecording(true);
-      // speak(
-      //   "this is going to be the chitti's first question",
-      //   undefined,
-      //   (audioBlob, audioUrl) => {
-      //     console.log("Got audio blob:", audioBlob);
-      //     console.log("Audio URL:", audioUrl);
-      //   }
-      // );
-      // stopListening : () => startListening('en-US')
-
-      const questionData = await getNextQuestion({});
-      console.log("  ->>>> ",questionData);
+     
+      const questionData = await getNextQuestion(null);
+      console.log('  ->>>> ', questionData);
       dispatch(updateQuestion(questionData));
-      if(questionData.data.number == "999") {
-      setNextDisabled(true);
-      }else{
+      if (questionData.data.number == '999') {
+        setNextDisabled(true);
+      } else {
         setNextDisabled(false);
-        updateChatList(prev => [...prev, {
-        "id": questionData.data.id,
-        "message": questionData.data.question,
-        "timestamp": getCurrentTimestamp(new Date()),
-        "isBot": true
-      }]);
+        updateChatList((prev) => [
+          ...prev,
+          {
+            id: questionData.data.id,
+            message: questionData.data.question,
+            timestamp: getCurrentTimestamp(new Date()),
+            isBot: true,
+          },
+        ]);
       }
     } catch (err) {
-      console.error("recording failed:", err);
+      console.error('recording failed:', err);
     }
   };
 
   const stopRecording = () => {
     mediaRecorderRef.current?.stop();
     setRecording(false);
+    stopListening();
   };
 
   const getElapsedTime = () => {
+    let seconds = 0
     if (timerRef.current) {
-      const seconds = timerRef.current.getElapsedSeconds();
-      alert(`Elapsed time: ${seconds} seconds`);
+      seconds = timerRef.current.getElapsedSeconds();
     }
+    return seconds
   };
 
-const getCurrentTimestamp = (date: Date) => {
-  const now = new Date(date);
-  const hours: number = now.getHours();
-  const minutes: number = now.getMinutes();
-  return `${hours}:${minutes < 10 ? '0' + minutes : minutes}`;
-};
+  const getCurrentTimestamp = (date: Date) => {
+    const now = new Date(date);
+    const hours: number = now.getHours();
+    const minutes: number = now.getMinutes();
+    return `${hours}:${minutes < 10 ? '0' + minutes : minutes}`;
+  };
 
   const questionObject = {
-    currentQuestion: "1",
+    currentQuestion: '1',
     question:
       "Lorem Ipsum is simply dummy text of the printing and type setting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.",
-    totalQuestions: "08",
+    totalQuestions: '08',
   };
-  const onClickNext = async() => {
+
+  const onClickNext = async () => {
     setNextDisabled(true);
     const questionData = await getNextQuestion({
-      "questionId": currentQuestion.id,
-      "question": currentQuestion.question,
-      "answer": currentAnswer,
+      questionId: currentQuestion.id,
+      question: currentQuestion.question,
+      answer: currentAnswer,
     });
     console.log(questionData.data);
-    
+
     dispatch(updateQuestion(questionData));
-    if(questionData.data.number == "999") {
+    if (questionData.data.number == '999') {
       setNextDisabled(true);
       setQuestionOver(true);
-      updateChatList(prev => [...prev, {
-        id: startSpeakingTimestamp.current?.toISOString() || new Date().toISOString(),
-        message: transcript || interimTranscript,
-        timestamp: getCurrentTimestamp(new Date(startSpeakingTimestamp.current || new Date())),
-        isBot: false
-      }]);
-    }else{
+      updateChatList((prev) => [
+        ...prev,
+        {
+          id:
+            startSpeakingTimestamp.current?.toISOString() ||
+            new Date().toISOString(),
+          message: transcript || interimTranscript,
+          timestamp: getCurrentTimestamp(
+            new Date(startSpeakingTimestamp.current || new Date())
+          ),
+          isBot: false,
+        },
+      ]);
+    } else {
       setNextDisabled(false);
 
-      updateChatList(prev => [...prev,{
-        id: startSpeakingTimestamp.current?.toISOString() || new Date().toISOString(),
-        message: transcript || interimTranscript,
-        timestamp: getCurrentTimestamp(new Date(startSpeakingTimestamp.current || new Date())),
-        isBot: false
-      }, {
-        "id": questionData.data.id,
-        "message": questionData.data.question,
-        "timestamp": getCurrentTimestamp(new Date()),
-        isBot: true
-      }]);
-
-
-      
+      updateChatList((prev) => [
+        ...prev,
+        {
+          id:
+            startSpeakingTimestamp.current?.toISOString() ||
+            new Date().toISOString(),
+          message: transcript || interimTranscript,
+          timestamp: getCurrentTimestamp(
+            new Date(startSpeakingTimestamp.current || new Date())
+          ),
+          isBot: false,
+        },
+        {
+          id: questionData.data.id,
+          message: questionData.data.question,
+          timestamp: getCurrentTimestamp(new Date()),
+          isBot: true,
+        },
+      ]);
     }
     isAlreadySpeaking.current = false;
     clearTranscript();
@@ -272,16 +366,24 @@ const getCurrentTimestamp = (date: Date) => {
   const handleInterviewStopping = () => {
     dispatch(exitInterviewModalStatus(false));
     stopRecording();
+    dispatch(logout())
     //navigate to feedback screen
   };
 
+
   useEffect(() => {
-    if (!isSpeaking) {
-      startListening("en-US");
+    if (!isSpeaking && recording) {
+      startListening('en-US');
+      setAudioTimeStamps((prev)=>[...prev,getElapsedTime()]);
+      uploadAudioChunks(activeAudioBlob,currentQuestion?.number,currentQuestion?.number === 999)
+    }else{
+      stopListening()
+      setAudioTimeStamps([getElapsedTime()])
     }
+
   }, [isSpeaking]);
 
-  const updateCurrentAnswer = (answer: string):void => {
+  const updateCurrentAnswer = (answer: string): void => {
     dispatch(updateAnswer(answer));
   };
 
@@ -291,7 +393,6 @@ const getCurrentTimestamp = (date: Date) => {
     recording,
     videoRef,
     startInterview,
-    downloadUrl,
     getElapsedTime,
     timerRef,
     questionObject,
@@ -311,7 +412,7 @@ const getCurrentTimestamp = (date: Date) => {
     speak,
     clearTranscript,
     updateCurrentAnswer,
-    chatList
+    chatList,
   };
 }
 

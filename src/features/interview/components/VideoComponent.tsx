@@ -33,14 +33,14 @@ const VideoComponent = ({
         minHeight: {sx:"100vh", md: "0"}
       }}
     >
-      <CurrentQuestion
+      {recording && <CurrentQuestion
         // questionObject={questionObject}
         nextDisabled={nextDisabled}
         onClickNext={onClickNext}
         currentQuestion={currentQuestion}
         questionTotalCount={questionTotalCount}
         questionOver={questionOver}
-      />
+      />}
       {/* Video Feed */}
       <Box
         sx={{
@@ -53,6 +53,7 @@ const VideoComponent = ({
       >
         {/* Camera Feed */}
         <video
+        id="#video"
           ref={videoRef}
           autoPlay
           muted
@@ -66,17 +67,6 @@ const VideoComponent = ({
             position: "relative",
           }}
         />
-        {/* <Webcam
-          height={720}
-          screenshotFormat='image/jpeg'
-          width={1280}
-          className='w-[83%] h-[30%] object-contain'
-          videoConstraints={{
-            width: 1000,
-            height: 400,
-            facingMode: 'user',
-          }}
-        /> */}
         {recording && (
           <div className="absolute top-4 flex flex-1 justify-between  text-sm w-full px-2">
             {/* Timer */}

@@ -3,6 +3,8 @@ import { Typography, Box, Checkbox, Link, useTheme } from '@mui/material';
 import CountdownTimer from '../../../components/CountDownTimer';
 import Button from '../../../components/Button';
 import { Navigate, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { login } from '../reducer/authSlice';
 
 interface OtpVerificationProps {
   onCancel: () => void;
@@ -10,10 +12,12 @@ interface OtpVerificationProps {
 
 const OtpVerification: React.FC<OtpVerificationProps> = ({ onCancel }) => {
   const theme = useTheme();
+  const dispatch = useDispatch()
   const [otp, setOtp] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [termsAccepted, setTermsAccepted] = useState<boolean>(false);
   const [otpErrorMessage, setOtpErrorMessage] = useState<string>('');
+  const email = useSelector((state: any) => state.auth.emailId)
   const navigate = useNavigate()
   const handleOtpChange = (e: ChangeEvent<HTMLInputElement>) => {
     setOtp(e.target.value);
@@ -38,6 +42,7 @@ const OtpVerification: React.FC<OtpVerificationProps> = ({ onCancel }) => {
     } else if (otp.length !== 6 || otp !== '123456') {
       setError('The entered OTP is invalid. Please try again.');
     } else {
+      dispatch(login({token:email}))//for now as there is no token
       navigate('/interview')
     }
   };
@@ -51,8 +56,7 @@ const OtpVerification: React.FC<OtpVerificationProps> = ({ onCancel }) => {
       <Typography
         sx={{ color: theme.palette.text.secondary, fontSize: 12, mt: 1 }}
       >
-        We’ve sent an OTP to your email:{' '}
-        <Link>vish.pc3@gmail.com</Link>.<br />
+        We’ve sent an OTP to your email: <Link>{email}</Link>.<br />
         Please check your inbox.
       </Typography>
 

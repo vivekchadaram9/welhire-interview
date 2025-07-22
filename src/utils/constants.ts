@@ -1,2 +1,2 @@
 
-export const chunksSize = 5
+export const chunksSize = 20

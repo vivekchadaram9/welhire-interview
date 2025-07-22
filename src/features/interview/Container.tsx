@@ -4,7 +4,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { exitInterviewModalStatus } from './reducer/interviewSlice';
 import { useSpeechServices } from '../../hooks/useSpeechServices';
 import { updateAnswer, updateQuestion } from './reducer/questionSlice';
-import { getNextQuestion, uploadAudioBlobs, uploadImageFile, uploadVideoBlobs } from './services/services';
+import {
+  getNextQuestion,
+  uploadAudioBlobs,
+  uploadImageFile,
+  uploadVideoBlobs,
+} from './services/services';
 import { chunksSize } from '../../utils/constants';
 import { logout } from '../auth/reducer/authSlice';
 
@@ -20,8 +25,7 @@ function InterviewFunc() {
   const [questionOver, setQuestionOver] = useState<boolean>(false);
   const [chatList, updateChatList] = useState<any[]>([]);
   const [audioTimeStamps, setAudioTimeStamps] = useState<any[]>([]);
-  const [activeAudioBlob,setActiveAudioBlob] = useState<Blob>()
-  const [chunkCounter, setChunkCounter] = useState<number>(0);
+  const [activeAudioBlob, setActiveAudioBlob] = useState<Blob>();
   const isAlreadySpeaking = useRef<boolean>(false);
   const startSpeakingTimestamp = useRef<Date>(null);
   const dispatch = useDispatch();
@@ -31,6 +35,8 @@ function InterviewFunc() {
   const { currentQuestion, currentAnswer } = useSelector(
     (state: any) => state.question
   );
+
+  const emailId = useSelector((state:any)=>state.auth.emailId)
 
   const {
     interimTranscript,
@@ -51,11 +57,6 @@ function InterviewFunc() {
     console.error(error, 'err');
   };
   useEffect(() => {
-    console.log(isSpeaking, 'isSpeaking');
-    console.log(isListening, 'isListening');
-    console.log(transcript, 'transcript');
-    console.log(interimTranscript, 'interimTranscript');
-
     if ((transcript || interimTranscript) && !isAlreadySpeaking.current) {
       startSpeakingTimestamp.current = new Date();
       isAlreadySpeaking.current = true;
@@ -74,8 +75,6 @@ function InterviewFunc() {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, []);
-
-  useEffect(() => {}, [showExitInterviewModal]);
 
   useEffect(() => {
     const getPermissions = async () => {
@@ -106,20 +105,16 @@ function InterviewFunc() {
       currentQuestion?.number > 0 &&
       currentQuestion?.number < 999
     ) {
-      speak(
-        currentQuestion.question,
-        undefined,
-        (audioBlob, audioUrl) => {
-          setActiveAudioBlob(audioBlob)
-        }
-      )
+      speak(currentQuestion.question, undefined, (audioBlob, audioUrl) => {
+        setActiveAudioBlob(audioBlob);
+      });
     }
   }, [currentQuestion.number]);
 
   const takeScreenshot = (screenshotIndex: number) => {
-    console.log(`Taking screenshot ${screenshotIndex}`);
-
-    const element = document.getElementById('#video') as HTMLVideoElement | null;
+    const element = document.getElementById(
+      '#video'
+    ) as HTMLVideoElement | null;
 
     if (!element) {
       console.error('Video element not found');
@@ -156,12 +151,10 @@ function InterviewFunc() {
 
           const formData = new FormData();
           formData.append('snapshotImage', blob);
-          formData.append('emailId', 'joe@gmail.com');
+          formData.append('emailId', emailId);
           formData.append('interviewSessionId', 'session-67');
           formData.append('candidateId', 'CANDIDATE-898');
           formData.append('chunkIndex', screenshotIndex.toString());
-
-          console.log(`Uploading screenshot ${screenshotIndex}`);
           uploadImageFile(formData, onSuccess, onFailure);
         },
         'image/jpeg',
@@ -172,8 +165,34 @@ function InterviewFunc() {
     }
   };
 
+  const validateChunk = (blob: Blob): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      const url = URL.createObjectURL(blob);
 
-  
+      const cleanup = () => {
+        URL.revokeObjectURL(url);
+        video.remove();
+      };
+
+      video.addEventListener('loadedmetadata', () => {
+        cleanup();
+        resolve(true);
+      });
+
+      video.addEventListener('error', () => {
+        cleanup();
+        resolve(false);
+      });
+
+      setTimeout(() => {
+        cleanup();
+        resolve(false);
+      }, 3000);
+
+      video.src = url;
+    });
+  };
 
   const uploadVideoChunks = async (
     blobList: any,
@@ -181,20 +200,18 @@ function InterviewFunc() {
     isLastChunk: boolean = false
   ) => {
     const combinedBlob = new Blob(blobList, { type: 'video/webm' });
-    // const url = URL.createObjectURL(combinedBlob);
-    // const a = document.createElement('a');
-    // a.href = url;
-    // a.download = 'recording.webm';
-    // a.click();
+    const isValid = await validateChunk(combinedBlob)
+    if(!isValid){
+      console.warn(`Chunk ${counter} failed validation`)
+      return 
+    }
     const formData = new FormData();
     formData.append('chunkIndex', counter.toString());
     formData.append('videoFile', combinedBlob);
-    formData.append('emailId', 'joe@gmail.com');
+    formData.append('emailId', emailId);
     formData.append('interviewSessionId', 'session-67');
     formData.append('candidateId', 'CANDIDATE-898');
-    if (isLastChunk) {
-      formData.append('isLastChunk', 'true');
-    }
+    formData.append('isLastChunk', isLastChunk.toString());
     console.log('this api is calling', formData, counter);
     uploadVideoBlobs(formData, onSuccess, onFailure);
   };
@@ -207,19 +224,21 @@ function InterviewFunc() {
     const formData = new FormData();
     formData.append('chunkIndex', counter.toString());
     formData.append('audioFile', blob);
-    formData.append('emailId', 'joe@gmail.com');
+    formData.append('emailId', emailId);
     formData.append('interviewSessionId', 'session-67');
     formData.append('candidateId', 'CANDIDATE-898');
-    formData.append('timeStamps', JSON.stringify([...audioTimeStamps, getElapsedTime()]));
+    formData.append(
+      'timeStamps',
+      JSON.stringify([...audioTimeStamps, getElapsedTime()])
+    );
     if (isLastChunk) {
       formData.append('isLastChunk', 'true');
     }
-    console.log('audio api is calling', formData, counter);
     uploadAudioBlobs(formData, onSuccess, onFailure);
   };
 
   const startInterview = async () => {
-    setInterviewStarted(true);
+    setInterviewStarted(true)
     try {
       const vidStream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -238,30 +257,56 @@ function InterviewFunc() {
         videoBitsPerSecond: 2500000,
         audioBitsPerSecond: 128000,
       };
-      const recorder = new MediaRecorder(combinedStream, options);
-      recorder.start(1000);
-      let chunks: Blob[] = [];
       let videoChunkCounter = 0;
-      recorder.ondataavailable = (e: BlobEvent) => {
-        if (e.data.size > 0) {
-          chunks.push(e.data);
-          if (chunks.length >= chunksSize) {
-            takeScreenshot(videoChunkCounter)
-            setChunkCounter((prev) => prev + 1);
-            uploadVideoChunks(chunks, ++videoChunkCounter);
-            chunks = [];
-          }
-        }
-      };
-      recorder.onstop = () => {
-        vidStream.getTracks().forEach((t) => t.stop());
-        uploadVideoChunks(chunks, ++videoChunkCounter, true);
-      };
-      mediaRecorderRef.current = recorder;
       setRecording(true);
-     
+      const recordAndUploadChunk = async(isLastChunk = false) =>{
+        return new Promise<void>((resolve, reject) => {
+          const recorder = new MediaRecorder(combinedStream, options);
+          const chunks: Blob[] = [];
+          takeScreenshot(videoChunkCounter);
+          recorder.ondataavailable = (e: BlobEvent) => {
+            if (e.data.size > 0) chunks.push(e.data);
+          };
+          recorder.onstop = async () => {
+            uploadVideoChunks(chunks,videoChunkCounter,isLastChunk)
+            resolve()
+            videoChunkCounter++
+          };
+
+          recorder.onerror = (event) =>
+            reject(new Error(`Recording error: ${event}`)); 
+
+          recorder.start();
+
+          setTimeout(() => {
+            if (recorder.state === 'recording') {
+              recorder.stop();
+            }
+          }, chunksSize*1000);
+        })
+      }
+      await recordAndUploadChunk()
+      let recordingInterval: ReturnType<typeof setInterval>;
+      recordingInterval = setInterval(async () => {
+        try {
+          await recordAndUploadChunk();
+        } catch (error) {
+          console.error('Chunk recording failed:', error);
+        }
+      }, chunksSize * 1000); 
+
+      mediaRecorderRef.current = {
+        stop: () => {
+          clearInterval(recordingInterval); 
+          recordAndUploadChunk(true).finally(() => {
+            vidStream.getTracks().forEach((t) => t.stop());
+            setRecording(false);
+            console.log('Interview recording completed');
+          });
+        },
+      } as any;
+
       const questionData = await getNextQuestion(null);
-      console.log('  ->>>> ', questionData);
       dispatch(updateQuestion(questionData));
       if (questionData.data.number == '999') {
         setNextDisabled(true);
@@ -283,17 +328,29 @@ function InterviewFunc() {
   };
 
   const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
     setRecording(false);
     stopListening();
+      if (
+        mediaRecorderRef.current
+      ) {
+        mediaRecorderRef.current.stop();
+        mediaRecorderRef.current = null;
+      }
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+        setStream(null);
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
   };
 
   const getElapsedTime = () => {
-    let seconds = 0
+    let seconds = 0;
     if (timerRef.current) {
       seconds = timerRef.current.getElapsedSeconds();
     }
-    return seconds
+    return seconds;
   };
 
   const getCurrentTimestamp = (date: Date) => {
@@ -317,8 +374,6 @@ function InterviewFunc() {
       question: currentQuestion.question,
       answer: currentAnswer,
     });
-    console.log(questionData.data);
-
     dispatch(updateQuestion(questionData));
     if (questionData.data.number == '999') {
       setNextDisabled(true);
@@ -366,21 +421,23 @@ function InterviewFunc() {
   const handleInterviewStopping = () => {
     dispatch(exitInterviewModalStatus(false));
     stopRecording();
-    dispatch(logout())
+    dispatch(logout());
     //navigate to feedback screen
   };
-
 
   useEffect(() => {
     if (!isSpeaking && recording) {
       startListening('en-US');
-      setAudioTimeStamps((prev)=>[...prev,getElapsedTime()]);
-      uploadAudioChunks(activeAudioBlob,currentQuestion?.number,currentQuestion?.number === 999)
-    }else{
-      stopListening()
-      setAudioTimeStamps([getElapsedTime()])
+      setAudioTimeStamps((prev) => [...prev, getElapsedTime()]);
+      uploadAudioChunks(
+        activeAudioBlob,
+        currentQuestion?.number,
+        currentQuestion?.number === 999
+      );
+    } else {
+      stopListening();
+      setAudioTimeStamps([getElapsedTime()]);
     }
-
   }, [isSpeaking]);
 
   const updateCurrentAnswer = (answer: string): void => {
